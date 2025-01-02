@@ -20,4 +20,4 @@ SELECT * FROM users;
 -- name: ResetDatabase :exec
 DELETE FROM users *;
 DELETE FROM feeds *;
-
+DELETE FROM feed_follows *;

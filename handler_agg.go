@@ -12,7 +12,7 @@ import (
 
 func parseXML(resp *http.Response, feed *RSSFeed) error {
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("Status error: %v", resp.StatusCode)
+		return fmt.Errorf("[!] Status error: %v", resp.StatusCode)
 	}
 
 	body, err := io.ReadAll(resp.Body)
