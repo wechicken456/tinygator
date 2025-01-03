@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -53,6 +54,16 @@ func (c *commands) run(s *state, cmd command) error {
 	return errors.New(fmt.Sprintf("[!] Command '%v' doesn't exist!", cmd.name))
 }
 
+func middlewareLoggedIn(handler func(s *state, cmd command, user database.User) error) func(*state, command) error {
+	return func(s *state, cmd command) error {
+		curUser, err := s.db.GetUser(context.Background(), s.conf.Current_user_name)
+		if err != nil {
+			return err
+		}
+		return handler(s, cmd, curUser)
+	}
+}
+
 func main() {
 	var (
 		conf *config.Config
@@ -75,9 +86,10 @@ func main() {
 	COMMANDS.register("reset", handlerReset)
 	COMMANDS.register("users", handlerGetUsers)
 	COMMANDS.register("agg", handlerAgg)
-	COMMANDS.register("addfeed", handlerAddFeed)
-	COMMANDS.register("following", handlerListFeeds)
-	COMMANDS.register("follow", handlerFollow)
+	COMMANDS.register("feeds", handlerListAllFeeds)
+	COMMANDS.register("addfeed", middlewareLoggedIn(handlerAddFeed))
+	COMMANDS.register("following", middlewareLoggedIn(handlerFollowingFeeds))
+	COMMANDS.register("follow", middlewareLoggedIn(handlerFollow))
 
 	_args := os.Args
 	if len(_args) < 2 {

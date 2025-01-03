@@ -11,34 +11,24 @@ import (
 	"github.com/google/uuid"
 )
 
-func handlerFollow(s *state, cmd command) error {
+func handlerFollow(s *state, cmd command, user database.User) error {
 	if len(cmd.args) < 1 {
 		return errors.New("[!] Bad arguments!! Need a feed URL.")
 	}
 	feedURL := cmd.args[0]
 
-	var (
-		curUser database.User
-		err     error
-	)
-
-	if _, err = url.ParseRequestURI(feedURL); err != nil {
+	if _, err := url.ParseRequestURI(feedURL); err != nil {
 		return errors.New("[!] Invalid URL!!")
-	}
-
-	curUser, err = s.db.GetUser(context.Background(), s.conf.Current_user_name)
-	if err != nil {
-		return err
 	}
 
 	// check if a feed with feedURL is present in the database
 	var feed database.Feed = database.Feed{}
-	feed, err = s.db.GetFeedByURL(context.Background(), feedURL)
+	feed, err := s.db.GetFeedByURL(context.Background(), feedURL)
 	if err == nil {
 		// if the combination of this user and and this feed URL already exists in the database
 		// return gracefully
 		_, err = s.db.GetFeedFollowWithUserID(context.Background(), database.GetFeedFollowWithUserIDParams{
-			UserID: curUser.ID,
+			UserID: user.ID,
 			FeedID: feed.ID})
 		fmt.Println(err)
 		if err == nil {
@@ -52,7 +42,7 @@ func handlerFollow(s *state, cmd command) error {
 	feedFollow.ID = uuid.New()
 	feedFollow.CreatedAt = time.Now()
 	feedFollow.UpdatedAt = time.Now()
-	feedFollow.UserID = curUser.ID
+	feedFollow.UserID = user.ID
 	feedFollow.FeedID = feed.ID
 
 	reply := database.CreateFeedFollowRow{}
