@@ -90,6 +90,7 @@ func main() {
 	COMMANDS.register("addfeed", middlewareLoggedIn(handlerAddFeed))
 	COMMANDS.register("following", middlewareLoggedIn(handlerFollowingFeeds))
 	COMMANDS.register("follow", middlewareLoggedIn(handlerFollow))
+	COMMANDS.register("unfollow", middlewareLoggedIn(handlerUnfollow))
 
 	_args := os.Args
 	if len(_args) < 2 {
