@@ -4,11 +4,52 @@ import (
 	"context"
 	"encoding/xml"
 	"fmt"
+	"gator/internal/database"
 	"html"
 	"io"
 	"net/http"
 	"time"
 )
+
+// iterate over the items and print them to the console
+func printFeed(rssFeed *RSSFeed) {
+	fmt.Printf("Feed: %v\n", rssFeed.Channel.Title)
+	fmt.Printf("Link: %v\n", rssFeed.Channel.Link)
+	fmt.Printf("Description: %v\n", rssFeed.Channel.Description)
+	for i, item := range rssFeed.Channel.Item {
+		fmt.Printf("%v.\n", i)
+		fmt.Printf("Title: %v\n", item.Title)
+		fmt.Printf("Link: %v\n", item.Link)
+		fmt.Printf("Description: %v\n", item.Description)
+		fmt.Printf("Publication Date: %v\n", item.PubDate)
+		fmt.Println()
+	}
+	fmt.Println("--------------------------------------------------")
+}
+
+func scrapeFeeds(s *state) error {
+	var (
+		feed    database.Feed
+		rssFeed *RSSFeed
+		err     error
+	)
+
+	// get the next feed to fetch from our database
+	feed, err = s.db.GetNextFeedToFetch(context.Background())
+	if err != nil {
+		return err
+	}
+
+	// fetch the feed from the internet
+	rssFeed, err = fetchFeed(context.Background(), feed.Url)
+	if err != nil {
+		return err
+	}
+	err = s.db.MarkFeedFetched(context.Background(), feed.ID)
+
+	printFeed(rssFeed)
+	return err
+}
 
 func parseXML(resp *http.Response, feed *RSSFeed) error {
 	if resp.StatusCode != http.StatusOK {
@@ -83,18 +124,23 @@ func fetchFeed(_ctx context.Context, feedURL string) (*RSSFeed, error) {
 
 func handlerAgg(s *state, cmd command) error {
 	var (
-		feed *RSSFeed
-		err  error
+		err                 error
+		timeBetweenRequests time.Duration
 	)
-	feed, err = fetchFeed(context.Background(), "https://www.wagslane.dev/index.xml")
+
+	if len(cmd.args) < 1 {
+		return fmt.Errorf("[!] Usage: agg <time_between_reqs>\n")
+	}
+
+	// run the scrapeFeeds function every timeBetweenRequests seconds
+	timeBetweenRequests, err = time.ParseDuration(cmd.args[0])
 	if err != nil {
 		return err
 	}
-	fmt.Println(feed)
 
-	feed, err = fetchFeed(context.Background(), "https://terrytao.wordpress.com/feed")
-	if err != nil {
-		return err
+	ticker := time.NewTicker(timeBetweenRequests)
+	for ; ; <-ticker.C {
+		scrapeFeeds(s)
 	}
 	return err
 }
