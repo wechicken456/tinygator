@@ -58,6 +58,7 @@ func middlewareLoggedIn(handler func(s *state, cmd command, user database.User) 
 	return func(s *state, cmd command) error {
 		curUser, err := s.db.GetUser(context.Background(), s.conf.Current_user_name)
 		if err != nil {
+			fmt.Printf("[!] Not logged in!\n")
 			return err
 		}
 		return handler(s, cmd, curUser)
